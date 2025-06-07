@@ -1,0 +1,61 @@
+2025-06-07 13:33:02,151 - INFO - Starting continuous monitoring...
+2025-06-07 13:33:07,102 - INFO - HTTP Request: GET https://iqnzotgvaynvgyjbvjfo.supabase.co/rest/v1/images?select=%2A&diagnosis=is.null "HTTP/2 200 OK"
+2025-06-07 13:33:07,105 - INFO - Found 1 new images to process
+2025-06-07 13:33:07,105 - INFO - Processing image 58e25488-f26d-45b7-8eeb-5f543fd48856: 8c41c85d-862d-42f8-bf93-9970d2f15a51/1749292354000-download.jfif
+2025-06-07 13:33:07,105 - INFO - Attempting to download image from path: 8c41c85d-862d-42f8-bf93-9970d2f15a51/1749292354000-download.jfif
+2025-06-07 13:33:07,326 - INFO - Generated public URL: https://iqnzotgvaynvgyjbvjfo.supabase.co/storage/v1/object/public/images/8c41c85d-862d-42f8-bf93-9970d2f15a51/1749292354000-download.jfif?
+2025-06-07 13:33:07,993 - WARNING - Public URL method failed: 400 Client Error: Bad Request for url: https://iqnzotgvaynvgyjbvjfo.supabase.co/storage/v1/object/public/images/8c41c85d-862d-42f8-bf93-9970d2f15a51/1749292354000-download.jfif
+2025-06-07 13:33:10,127 - INFO - HTTP Request: GET https://iqnzotgvaynvgyjbvjfo.supabase.co/storage/v1/object/images/8c41c85d-862d-42f8-bf93-9970d2f15a51/1749292354000-download.jfif "HTTP/2 200 OK"
+2025-06-07 13:33:11,119 - INFO - Successfully downloaded image using direct download
+2025-06-07 13:33:15,983 - ERROR - Invalid JSON response from Gemini: ```json
+{
+  "diagnosis": {
+    "title": "Diagnosis Summary",
+    "identified_problem": "Grape Leaf Gall Mites (Eriophyidae)",
+    "severity": "Moderate",
+    "symptoms_observed": [
+      "Presence of raised, blister-like galls on the upper leaf surface",
+      "Yellowish-green to yellow color of the galls"
+    ],
+    "possible_causes": [
+      "Infestation by grape leaf gall mites (Eriophyidae)"
+    ]
+  },
+  "recommendations": {
+    "title": "Recommended Actions",
+    "immediate_actions": [
+      "Prune away and destroy heavily infested leaves to reduce the mite population. Dispose of the infested leaves properly by burning or sealing in a plastic bag and discarding them in the trash.",
+      "Apply horticultural oil or insecticidal soap early in the season, before bud break, to target overwintering mites. Repeat applications may be needed.",
+      "Consider using a miticide specifically labeled for grape leaf gall mites if the infestation is severe. Always follow the product label instructions carefully."
+    ],
+    "long_term_care": [
+      "Monitor grapevines regularly for signs of gall mite activity, especially during the growing season.",
+      "Ensure proper vine vigor through adequate watering, fertilization, and pruning to improve overall plant health and resistance to pests.",
+      "Encourage beneficial mites and insects that prey on gall mites by avoiding broad-spectrum insecticide applications."
+    ],
+    "prevention_tips": [
+      "Inspect new grapevines for gall mite symptoms before planting.",
+      "Maintain good sanitation practices by removing fallen leaves and debris around the base of the vines.",
+      "Consider using sulfur sprays early in the season as a preventative measure, but be cautious of potential phytotoxicity, especially in hot weather."
+    ]
+  },
+  "disclaimer": "This diagnosis and recommendations are based on the provided image and do not substitute professional on-site examination. Always follow local regulations and product labels when applying treatments."
+}
+```
+2025-06-07 13:33:15,983 - ERROR - Failed to generate diagnosis for image 58e25488-f26d-45b7-8eeb-5f543fd48856
+2025-06-07 13:33:15,987 - INFO - Waiting 30 seconds before next check...
+2025-06-07 13:33:23,271 - INFO - Monitoring stopped by user
+2025-06-07 13:39:39,495 - INFO - Starting continuous monitoring...
+2025-06-07 13:39:41,150 - INFO - HTTP Request: GET https://iqnzotgvaynvgyjbvjfo.supabase.co/rest/v1/images?select=%2A&diagnosis=is.null "HTTP/2 200 OK"
+2025-06-07 13:39:41,152 - INFO - Found 1 new images to process
+2025-06-07 13:39:41,153 - INFO - Processing image 58e25488-f26d-45b7-8eeb-5f543fd48856: 8c41c85d-862d-42f8-bf93-9970d2f15a51/1749292354000-download.jfif
+2025-06-07 13:39:41,153 - INFO - Attempting to download image from path: 8c41c85d-862d-42f8-bf93-9970d2f15a51/1749292354000-download.jfif
+2025-06-07 13:39:41,370 - INFO - Generated public URL: https://iqnzotgvaynvgyjbvjfo.supabase.co/storage/v1/object/public/images/8c41c85d-862d-42f8-bf93-9970d2f15a51/1749292354000-download.jfif?
+2025-06-07 13:39:43,810 - WARNING - Public URL method failed: 400 Client Error: Bad Request for url: https://iqnzotgvaynvgyjbvjfo.supabase.co/storage/v1/object/public/images/8c41c85d-862d-42f8-bf93-9970d2f15a51/1749292354000-download.jfif
+2025-06-07 13:39:44,733 - INFO - HTTP Request: GET https://iqnzotgvaynvgyjbvjfo.supabase.co/storage/v1/object/images/8c41c85d-862d-42f8-bf93-9970d2f15a51/1749292354000-download.jfif "HTTP/2 200 OK"
+2025-06-07 13:40:14,073 - INFO - Successfully downloaded image using direct download
+2025-06-07 13:40:29,756 - INFO - HTTP Request: PATCH https://iqnzotgvaynvgyjbvjfo.supabase.co/rest/v1/images?id=eq.58e25488-f26d-45b7-8eeb-5f543fd48856 "HTTP/2 200 OK"
+2025-06-07 13:40:29,758 - INFO - Successfully updated diagnosis for image 58e25488-f26d-45b7-8eeb-5f543fd48856
+2025-06-07 13:40:29,758 - INFO - Successfully processed image 58e25488-f26d-45b7-8eeb-5f543fd48856
+2025-06-07 13:40:31,759 - INFO - Waiting 30 seconds before next check...
+2025-06-07 13:40:42,135 - INFO - Monitoring stopped by user
