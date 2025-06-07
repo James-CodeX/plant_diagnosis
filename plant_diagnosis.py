@@ -1,3 +1,5 @@
+## --- START OF FILE plant_diagnosis.py ---
+
 import os
 import time
 import json
@@ -74,67 +76,63 @@ Response Format (JSON Schema - STRICTLY FOLLOW THIS):
 }"""
 
     def get_image_from_storage(self, storage_path: str) -> Optional[Image.Image]:
-        """Download image from Supabase storage"""
+        """Download image from Supabase storage using direct download or signed URL."""
         try:
             logger.info(f"Attempting to download image from path: {storage_path}")
-            
-            # Method 1: Try getting public URL
+
+            # Method 1: Try downloading directly using service role
             try:
-                public_url_response = self.supabase.storage.from_('images').get_public_url(storage_path)
-                image_url = public_url_response
-                logger.info(f"Generated public URL: {image_url}")
+                logger.info(f"Attempting direct download for: {storage_path}")
+                download_response = self.supabase.storage.from_('images').download(storage_path)
                 
-                # Download the image
-                img_response = requests.get(image_url, timeout=30)
-                img_response.raise_for_status()
-                
-                # Convert to PIL Image
-                image = Image.open(BytesIO(img_response.content))
-                logger.info(f"Successfully downloaded image from public URL")
-                return image
-                
-            except Exception as public_url_error:
-                logger.warning(f"Public URL method failed: {str(public_url_error)}")
-                
-                # Method 2: Try downloading directly using service role
-                try:
-                    download_response = self.supabase.storage.from_('images').download(storage_path)
+                if download_response: # download_response contains image bytes on success
+                    image = Image.open(BytesIO(download_response))
+                    logger.info(f"Successfully downloaded image using direct download for: {storage_path}")
+                    return image
+                else:
+                    # Supabase download() might return None or empty bytes without an exception for "not found"
+                    # or certain permission issues not caught by an exception.
+                    logger.warning(f"Direct download for {storage_path} returned no data. Trying signed URL method.")
                     
-                    if download_response:
-                        # Convert bytes to PIL Image
-                        image = Image.open(BytesIO(download_response))
-                        logger.info(f"Successfully downloaded image using direct download")
-                        return image
-                    else:
-                        logger.error(f"No data returned from direct download")
-                        
-                except Exception as download_error:
-                    logger.error(f"Direct download method failed: {str(download_error)}")
-                    
-                    # Method 3: Try creating a signed URL
-                    try:
-                        signed_url_response = self.supabase.storage.from_('images').create_signed_url(storage_path, 3600)  # 1 hour expiry
-                        
-                        if signed_url_response.get('signedURL'):
-                            signed_url = signed_url_response['signedURL']
-                            logger.info(f"Generated signed URL: {signed_url}")
-                            
-                            img_response = requests.get(signed_url, timeout=30)
-                            img_response.raise_for_status()
-                            
-                            image = Image.open(BytesIO(img_response.content))
-                            logger.info(f"Successfully downloaded image using signed URL")
-                            return image
-                        else:
-                            logger.error(f"Failed to create signed URL: {signed_url_response}")
-                            
-                    except Exception as signed_url_error:
-                        logger.error(f"Signed URL method failed: {str(signed_url_error)}")
+            except Exception as download_error: # Catches StorageException from supabase-py or other errors
+                logger.warning(f"Direct download method for {storage_path} failed: {str(download_error)}. Trying signed URL method.")
             
+            # Method 2: Try creating a signed URL
+            try:
+                logger.info(f"Attempting signed URL download for: {storage_path}")
+                # create_signed_url returns a dict: {'signedURL': '...', 'error': None} or {'signedURL': None, 'error': '...'}
+                # It can also raise an exception (e.g. for invalid path before returning a dict).
+                signed_url_response = self.supabase.storage.from_('images').create_signed_url(storage_path, 3600)  # 1 hour expiry
+                
+                if signed_url_response and signed_url_response.get('signedURL'):
+                    signed_url = signed_url_response['signedURL']
+                    logger.info(f"Generated signed URL for {storage_path} (truncated): {signed_url[:70]}...")
+                    
+                    img_response = requests.get(signed_url, timeout=30)
+                    img_response.raise_for_status() # Raises HTTPError for bad responses (4xx or 5xx)
+                    
+                    image = Image.open(BytesIO(img_response.content))
+                    logger.info(f"Successfully downloaded image using signed URL for: {storage_path}")
+                    return image
+                else:
+                    error_detail = "Unknown reason"
+                    if signed_url_response and signed_url_response.get('error'):
+                        error_detail = signed_url_response.get('error')
+                    elif not signed_url_response:
+                         error_detail = "create_signed_url returned None or empty response."
+                    logger.error(f"Failed to create signed URL for {storage_path}: {error_detail}")
+                    
+            except requests.exceptions.HTTPError as http_err: # Specific error for signed URL download failing at requests level
+                logger.error(f"Signed URL download for {storage_path} failed with HTTP error: {str(http_err)}")
+            except Exception as signed_url_error: # Other errors during signed URL process (e.g., supabase client error)
+                logger.error(f"Signed URL method for {storage_path} failed: {str(signed_url_error)}")
+            
+            # If both direct download and signed URL methods have been attempted and failed to return an image
+            logger.error(f"All download attempts (direct, signed URL) failed for {storage_path}.")
             return None
             
-        except Exception as e:
-            logger.error(f"All download methods failed for {storage_path}: {str(e)}")
+        except Exception as e: # Catch-all for truly unexpected issues in the function setup or logic not related to download methods.
+            logger.error(f"Unexpected error in get_image_from_storage for {storage_path}: {str(e)}")
             return None
 
     def test_storage_connection(self):
@@ -168,28 +166,22 @@ Response Format (JSON Schema - STRICTLY FOLLOW THIS):
             raw_response_text = response.text.strip()
             
             # Attempt to clean markdown code fences
-            # Common pattern is ```json\n{...}\n``` or ```\n{...}\n```
-            # or just ```{...}```
             cleaned_json_text = raw_response_text
             
             if cleaned_json_text.startswith("```json"):
                 cleaned_json_text = cleaned_json_text[len("```json"):]
-            elif cleaned_json_text.startswith("```"): # Handle cases where "json" identifier is missing
+            elif cleaned_json_text.startswith("```"): 
                 cleaned_json_text = cleaned_json_text[len("```"):]
 
             if cleaned_json_text.endswith("```"):
                 cleaned_json_text = cleaned_json_text[:-len("```")]
             
-            cleaned_json_text = cleaned_json_text.strip() # Remove any extra newlines/spaces
+            cleaned_json_text = cleaned_json_text.strip() 
 
-            # Try to parse as JSON to validate format
             try:
-                # Validate if it's proper JSON by attempting to load it
                 json.loads(cleaned_json_text)  
-                # If successful, return the cleaned, valid JSON string
                 return cleaned_json_text        
             except json.JSONDecodeError as e:
-                # Log the error with the text that failed parsing
                 logger.error(
                     f"Invalid JSON response from Gemini after cleaning. "
                     f"Error: {e}. \nCleaned text attempt: '{cleaned_json_text}'. "
@@ -198,7 +190,6 @@ Response Format (JSON Schema - STRICTLY FOLLOW THIS):
                 return None
                 
         except Exception as e:
-            # This handles errors from model.generate_content or other unexpected issues
             logger.error(f"Error generating diagnosis: {str(e)}")
             return None
 
@@ -214,7 +205,7 @@ Response Format (JSON Schema - STRICTLY FOLLOW THIS):
                 logger.info(f"Successfully updated diagnosis for image {image_id}")
                 return True
             else:
-                logger.error(f"Failed to update diagnosis for image {image_id}")
+                logger.error(f"Failed to update diagnosis for image {image_id}. Response: {result}") # Added response detail
                 return False
                 
         except Exception as e:
@@ -244,33 +235,37 @@ Response Format (JSON Schema - STRICTLY FOLLOW THIS):
             try:
                 image_id = image_record['id']
                 storage_path = image_record['storage_path']
-                title = image_record.get('title', '')
+                title = image_record.get('title', '') # Use .get for safer access
                 
+                if not storage_path:
+                    logger.warning(f"Skipping image record {image_id} due to missing storage_path.")
+                    continue
+
                 logger.info(f"Processing image {image_id}: {storage_path}")
                 
-                # Download image
                 image = self.get_image_from_storage(storage_path)
                 if not image:
-                    logger.error(f"Failed to download image {image_id}")
+                    logger.error(f"Failed to download image {image_id} from {storage_path}. Skipping.")
+                    # Optionally, update DB with an error status for this image
+                    # self.update_diagnosis_in_db(image_id, json.dumps({"error": "Failed to download image"}))
                     continue
                 
-                # Generate diagnosis
                 diagnosis = self.diagnose_plant(image, title)
                 if not diagnosis:
-                    logger.error(f"Failed to generate diagnosis for image {image_id}")
+                    logger.error(f"Failed to generate diagnosis for image {image_id}. Skipping.")
+                    # Optionally, update DB with an error status
+                    # self.update_diagnosis_in_db(image_id, json.dumps({"error": "Failed to generate diagnosis"}))
                     continue
                 
-                # Update database
                 if self.update_diagnosis_in_db(image_id, diagnosis):
                     logger.info(f"Successfully processed image {image_id}")
                 else:
-                    logger.error(f"Failed to update database for image {image_id}")
+                    logger.error(f"Failed to update database for image {image_id} after successful diagnosis.")
                     
-                # Add delay to avoid rate limiting
-                time.sleep(2)
+                time.sleep(2) # Consider making this configurable or adjusting based on API limits
                 
             except Exception as e:
-                logger.error(f"Error processing image {image_record.get('id', 'unknown')}: {str(e)}")
+                logger.error(f"Error processing image record {image_record.get('id', 'unknown')}: {str(e)}")
 
     def run_continuous_monitoring(self, check_interval: int = 30):
         """Run continuous monitoring for new images"""
@@ -286,15 +281,14 @@ Response Format (JSON Schema - STRICTLY FOLLOW THIS):
                 break
             except Exception as e:
                 logger.error(f"Error in monitoring loop: {str(e)}")
-                time.sleep(check_interval)
+                time.sleep(check_interval) # Wait before retrying loop to avoid rapid error logging
 
     def run_once(self):
         """Run the diagnosis process once"""
         logger.info("Running one-time diagnosis check...")
         
-        # Test storage connection first
         if not self.test_storage_connection():
-            logger.error("Storage connection test failed. Please check your bucket configuration.")
+            logger.error("Storage connection test failed. Please check your bucket configuration and permissions.")
             return
             
         self.process_new_images()
@@ -303,7 +297,6 @@ Response Format (JSON Schema - STRICTLY FOLLOW THIS):
 
 def main():
     """Main function to run the plant diagnosis system"""
-    # Validate environment variables
     required_vars = ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'GEMINI_API_KEY']
     missing_vars = [var for var in required_vars if not os.getenv(var)]
     
@@ -311,18 +304,25 @@ def main():
         logger.error(f"Missing required environment variables: {', '.join(missing_vars)}")
         return
     
-    # Initialize the system
     system = PlantDiagnosisSystem()
     
-    # You can choose to run once or continuously
     import sys
     if len(sys.argv) > 1 and sys.argv[1] == '--once':
         system.run_once()
     else:
-        # Run with custom interval (default 30 seconds)
-        interval = int(sys.argv[1]) if len(sys.argv) > 1 and sys.argv[1].isdigit() else 30
-        system.run_continuous_monitoring(interval)
+        interval_arg = 30 # Default interval
+        if len(sys.argv) > 1:
+            try:
+                interval_arg = int(sys.argv[1])
+                if interval_arg <= 0:
+                    logger.warning("Interval must be positive. Using default 30 seconds.")
+                    interval_arg = 30
+            except ValueError:
+                logger.warning(f"Invalid interval '{sys.argv[1]}'. Using default 30 seconds.")
+        
+        system.run_continuous_monitoring(interval_arg)
 
 
 if __name__ == "__main__":
     main()
+## --- END OF FILE plant_diagnosis.py ---
